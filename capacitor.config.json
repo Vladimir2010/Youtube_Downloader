@@ -1,0 +1,19 @@
+{
+    "appId": "com.youtube.downloader",
+    "appName": "YouTube Downloader",
+    "webDir": "frontend",
+    "server": {
+        "androidScheme": "http",
+        "cleartext": true,
+        "url": "http://10.0.2.2:5000"
+    },
+    "android": {
+        "buildOptions": {
+            "keystorePath": "",
+            "keystorePassword": "",
+            "keystoreAlias": "",
+            "keystoreAliasPassword": "",
+            "releaseType": "APK"
+        }
+    }
+}

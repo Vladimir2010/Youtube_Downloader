@@ -1,0 +1,29 @@
+{
+    "name": "youtube-downloader",
+    "version": "1.0.0",
+    "description": "YouTube Downloader Web + Android App",
+    "main": "index.js",
+    "scripts": {
+        "start": "python backend/app.py",
+        "build": "echo 'No build needed for vanilla JS'",
+        "cap:init": "npx cap init",
+        "cap:add:android": "npx cap add android",
+        "cap:sync": "npx cap sync",
+        "cap:open:android": "npx cap open android"
+    },
+    "keywords": [
+        "youtube",
+        "downloader",
+        "capacitor",
+        "android"
+    ],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "@capacitor/cli": "^6.0.0"
+    },
+    "dependencies": {
+        "@capacitor/core": "^6.0.0",
+        "@capacitor/android": "^6.0.0"
+    }
+}

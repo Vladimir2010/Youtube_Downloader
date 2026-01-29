@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 YouTube Downloader</h1>
+            <p class="subtitle">Свали видео и аудио от YouTube</p>
+        </header>
+
+        <main>
+            <!-- URL Input -->
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="urlInput" 
+                    placeholder="Постави YouTube URL тук..."
+                    autocomplete="off"
+                >
+                <button id="fetchBtn" class="btn btn-primary">Извлечи Инфо</button>
+            </div>
+
+            <!-- Video Info -->
+            <div id="videoInfo" class="video-info hidden">
+                <div class="thumbnail-container">
+                    <img id="thumbnail" src="" alt="Video Thumbnail">
+                </div>
+                <div class="info-text">
+                    <h3 id="videoTitle">Заглавие</h3>
+                    <p id="videoDuration"></p>
+                </div>
+            </div>
+
+            <!-- Download Options -->
+            <div id="downloadOptions" class="options-panel hidden">
+                <!-- Mode Selection -->
+                <div class="mode-selection">
+                    <label class="radio-label">
+                        <input type="radio" name="mode" value="video_audio" checked>
+                        <span>Video + Audio (MP4)</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="mode" value="video_only">
+                        <span>Video Only</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="mode" value="audio_only">
+                        <span>Audio Only (MP3)</span>
+                    </label>
+                </div>
+
+                <!-- Quality Selection -->
+                <div class="quality-selection">
+                    <label for="qualitySelect" id="qualityLabel">Качество:</label>
+                    <select id="qualitySelect" class="select-box">
+                        <option value="">Избери качество</option>
+                    </select>
+                </div>
+
+                <!-- Download Button -->
+                <button id="downloadBtn" class="btn btn-success">Свали Сега</button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progressContainer" class="progress-container hidden">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <p id="progressText" class="progress-text">0%</p>
+            </div>
+
+            <!-- Status Message -->
+            <div id="statusMessage" class="status-message"></div>
+        </main>
+
+        <footer>
+            <p>⚠️ Само за образователни цели</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+python_desktop/
+flutter_android/
+node_modules/
+.DS_Store
+*.pyc
+__pycache__/
+*.log
+backend/downloads/
+.env
+dist/
+build/
+*.apk
+*.aab
+*.exe
+*.spec
+YoutubeDownloader.spec
