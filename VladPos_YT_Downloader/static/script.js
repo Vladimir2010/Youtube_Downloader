@@ -1,85 +1,185 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const urlInput = document.getElementById('url-input');
-    const analyzeBtn = document.getElementById('analyze-btn');
+    const urlSearchInput = document.getElementById('url-search-input');
+    const searchBtn = document.getElementById('search-btn');
     const errorMsg = document.getElementById('error-msg');
-    const videoInfo = document.getElementById('video-info');
-    const videoThumbnail = document.getElementById('video-thumbnail');
-    const videoTitle = document.getElementById('video-title');
-    const typeSelect = document.getElementById('type-select');
-    const qualitySelect = document.getElementById('quality-select');
-    const qualityGroup = document.getElementById('quality-group');
-    const downloadBtn = document.getElementById('download-btn');
+    const searchResults = document.getElementById('search-results');
+
+    // Progress UI
     const progressContainer = document.getElementById('progress-container');
     const progressBarFill = document.getElementById('progress-bar-fill');
     const statusText = document.getElementById('status-text');
-    const progressDetails = document.createElement('p');
-    progressDetails.id = 'progress-details';
-    progressDetails.style.textAlign = 'center';
-    progressDetails.style.fontSize = '0.8rem';
-    progressDetails.style.marginTop = '0.5rem';
-    progressDetails.style.color = '#94a3b8';
-    progressContainer.appendChild(progressDetails);
-
+    const progressDetails = document.getElementById('progress-details');
     const finalLink = document.getElementById('final-link');
     const downloadLink = document.getElementById('download-link');
 
-    let currentFormats = [];
+    // Modals
+    const playModal = document.getElementById('play-modal');
+    const downloadModal = document.getElementById('download-modal');
+    const youtubeIframe = document.getElementById('youtube-iframe');
+    const closePlay = document.getElementById('close-play');
+    const closeDownload = document.getElementById('close-download');
 
-    analyzeBtn.addEventListener('click', async () => {
-        const url = urlInput.value.trim();
-        if (!url) return;
+    // Download Modal Elements
+    const modalVideoTitle = document.getElementById('modal-video-title');
+    const modalTypeSelect = document.getElementById('modal-type-select');
+    const modalQualitySelect = document.getElementById('modal-quality-select');
+    const modalQualityGroup = document.getElementById('modal-quality-group');
+    const modalStartDownloadBtn = document.getElementById('modal-start-download-btn');
 
-        analyzeBtn.disabled = true;
-        analyzeBtn.innerText = 'Анализиране...';
+    let currentVideo = null;
+
+    // --- Utility ---
+    function showModal(modal) {
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.add('visible'), 10);
+    }
+
+    function hideModal(modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+
+    function isPlaylist(url) {
+        return url.includes('list=') || url.includes('start_radio=');
+    }
+
+    // --- Search Logic ---
+    searchBtn.addEventListener('click', async () => {
+        const query = urlSearchInput.value.trim();
+        if (!query) return;
+
+        if (isPlaylist(query)) {
+            errorMsg.innerText = "Грешка: Плейлисти не се поддържат. Моля, сложи линк към индивидуално видео.";
+            return;
+        }
+
+        if (query.startsWith('http')) {
+            analyzeDirect(query);
+            return;
+        }
+
+        searchBtn.disabled = true;
+        searchBtn.innerText = 'Търсене...';
         errorMsg.innerText = '';
-        videoInfo.classList.add('hidden');
+        searchResults.classList.add('hidden');
+        searchResults.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query })
+            });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            data.forEach(video => {
+                const card = createVideoCard(video);
+                searchResults.appendChild(card);
+            });
+            searchResults.classList.remove('hidden');
+        } catch (err) {
+            errorMsg.innerText = "Грешка: " + err.message;
+        } finally {
+            searchBtn.disabled = false;
+            searchBtn.innerText = 'Търси / Извлечи';
+        }
+    });
+
+    function createVideoCard(video) {
+        const div = document.createElement('div');
+        div.className = 'video-card';
+        div.innerHTML = `
+            <img src="${video.thumbnail}" class="card-thumb" alt="thumb">
+            <div class="card-content">
+                <h3>${video.title}</h3>
+                <p>Канал: ${video.channel} • ${video.duration || ''}</p>
+                <div class="card-actions">
+                    <button class="btn-play">Гледай</button>
+                    <button class="btn-download">Свали</button>
+                </div>
+            </div>
+        `;
+
+        div.querySelector('.btn-play').addEventListener('click', () => {
+            youtubeIframe.src = `https://www.youtube.com/embed/${video.id}?autoplay=1`;
+            showModal(playModal);
+        });
+
+        div.querySelector('.btn-download').addEventListener('click', () => {
+            openDownloadModal(video);
+        });
+
+        return div;
+    }
+
+    // --- Modal Logic ---
+    closePlay.addEventListener('click', () => {
+        hideModal(playModal);
+        youtubeIframe.src = '';
+    });
+
+    closeDownload.addEventListener('click', () => {
+        hideModal(downloadModal);
+    });
+
+    window.onclick = (event) => {
+        if (event.target == playModal) closePlay.click();
+        if (event.target == downloadModal) closeDownload.click();
+    };
+
+    async function openDownloadModal(video) {
+        currentVideo = video;
+        modalVideoTitle.innerText = video.title;
+        modalStartDownloadBtn.disabled = true;
+        modalStartDownloadBtn.innerText = 'Зареждане...';
+        showModal(downloadModal);
 
         try {
             const response = await fetch('/api/formats', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
+                body: JSON.stringify({ id: video.id || video.url })
             });
-
             const data = await response.json();
             if (data.error) throw new Error(data.error);
 
-            videoTitle.innerText = data.title;
-            videoThumbnail.src = data.thumbnail;
-            currentFormats = data.formats;
-
-            qualitySelect.innerHTML = '';
-            currentFormats.forEach(f => {
+            modalQualitySelect.innerHTML = '';
+            data.formats.forEach(f => {
                 const opt = document.createElement('option');
                 opt.value = f.id;
                 opt.innerText = `${f.quality} (${f.ext})`;
-                qualitySelect.appendChild(opt);
+                modalQualitySelect.appendChild(opt);
             });
+            modalStartDownloadBtn.disabled = false;
+            modalStartDownloadBtn.innerText = 'Започни изтеглянето';
 
-            videoInfo.classList.remove('hidden');
+            // If was direct analyze, update title and currentVideo properly
+            modalVideoTitle.innerText = data.title;
+            currentVideo.title = data.title;
+            currentVideo.url = currentVideo.url || `https://www.youtube.com/watch?v=${video.id}`;
         } catch (err) {
-            errorMsg.innerText = "Грешка: " + err.message;
-        } finally {
-            analyzeBtn.disabled = false;
-            analyzeBtn.innerText = 'Извлечи';
+            modalVideoTitle.innerText = 'Грешка: ' + err.message;
+            modalStartDownloadBtn.innerText = 'Опитай пак';
+            modalStartDownloadBtn.disabled = false;
         }
-    });
+    }
 
-    typeSelect.addEventListener('change', () => {
-        if (typeSelect.value === 'audio') {
-            qualityGroup.classList.add('hidden');
+    modalTypeSelect.addEventListener('change', () => {
+        if (modalTypeSelect.value === 'audio') {
+            modalQualityGroup.classList.add('hidden');
         } else {
-            qualityGroup.classList.remove('hidden');
+            modalQualityGroup.classList.remove('hidden');
         }
     });
 
-    downloadBtn.addEventListener('click', async () => {
-        const url = urlInput.value.trim();
-        const type = typeSelect.value;
-        const format_id = qualitySelect.value;
+    modalStartDownloadBtn.addEventListener('click', async () => {
+        const type = modalTypeSelect.value;
+        const format_id = modalQualitySelect.value;
 
-        downloadBtn.disabled = true;
+        hideModal(downloadModal);
         progressContainer.classList.remove('hidden');
+        progressContainer.scrollIntoView({ behavior: 'smooth' });
         finalLink.classList.add('hidden');
         progressBarFill.style.width = '0%';
         statusText.innerText = 'Подготовка...';
@@ -89,17 +189,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/download', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url, type, format_id })
+                body: JSON.stringify({ url: currentVideo.url, type, format_id })
             });
-
-            const { job_id } = await response.json();
-            pollStatus(job_id);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            pollStatus(data.job_id);
         } catch (err) {
-            statusText.innerText = 'Сървърна грешка.';
-            downloadBtn.disabled = false;
+            statusText.innerText = 'Грешка: ' + err.message;
         }
     });
 
+    // --- Direct Analyze Logic ---
+    async function analyzeDirect(url) {
+        errorMsg.innerText = '';
+        // Minimal object to trigger the fetching in modal
+        const vidObj = {
+            id: null,
+            title: "Зареждане на видео...",
+            url: url
+        };
+        openDownloadModal(vidObj);
+    }
+
+    // --- Polling Logic ---
     async function pollStatus(job_id) {
         const interval = setInterval(async () => {
             try {
@@ -115,21 +227,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (data.status === 'completed') {
                     clearInterval(interval);
-                    statusText.innerText = 'Готово за изтегляне!';
+                    statusText.innerText = 'Готово!';
                     progressDetails.innerText = '';
                     finalLink.classList.remove('hidden');
                     downloadLink.href = `/api/file/${job_id}`;
-                    downloadBtn.disabled = false;
                 } else if (data.status === 'error') {
                     clearInterval(interval);
                     statusText.innerText = data.text;
                     progressDetails.innerText = '';
-                    downloadBtn.disabled = false;
                 }
             } catch (err) {
                 clearInterval(interval);
-                statusText.innerText = 'Връзката прекъсна.';
-                downloadBtn.disabled = false;
+                statusText.innerText = 'Грешка при връзката.';
             }
         }, 2000);
     }

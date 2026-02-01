@@ -93,12 +93,61 @@ def download_task(job_id, url, format_opts):
 def index():
     return render_template('index.html')
 
+@app.route('/api/search', methods=['POST'])
+def search_videos():
+    data = request.json
+    query = data.get('query')
+    if not query:
+        return jsonify({'error': 'Моля въведете ключова дума'}), 400
+
+    try:
+        ydl_opts = {
+            'extract_flat': True,
+            'quiet': True,
+            'no_warnings': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios'],
+                }
+            },
+            'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # ytsearch5: will return the first 5 results
+            search_result = ydl.extract_info(f"ytsearch5:{query}", download=False)
+            results = []
+            
+            if 'entries' in search_result:
+                for entry in search_result['entries']:
+                    results.append({
+                        'id': entry.get('id'),
+                        'title': entry.get('title'),
+                        'thumbnail': entry.get('thumbnails')[0]['url'] if entry.get('thumbnails') else None,
+                        'channel': entry.get('uploader'),
+                        'duration': entry.get('duration_string'),
+                        'url': f"https://www.youtube.com/watch?v={entry.get('id')}"
+                    })
+            
+            return jsonify(results)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/formats', methods=['POST'])
 def get_formats():
     data = request.json
-    url = data.get('url')
-    if not url:
-        return jsonify({'error': 'Моля въведете URL'}), 400
+    url_or_id = data.get('url') or data.get('id')
+    if not url_or_id:
+        return jsonify({'error': 'Моля въведете URL или ID'}), 400
+
+    # Playlist validation
+    if 'list=' in url_or_id or 'start_radio=' in url_or_id:
+        return jsonify({'error': 'Плейлисти не се поддържат. Моля, въведете линк към отделно видео.'}), 400
+
+    # If it's just an ID, reconstruct the URL
+    if not url_or_id.startswith('http'):
+        url = f"https://www.youtube.com/watch?v={url_or_id}"
+    else:
+        url = url_or_id
 
     try:
         ydl_opts = {
@@ -150,6 +199,9 @@ def start_download():
     
     if not url:
         return jsonify({'error': 'URL е задължителен'}), 400
+
+    if 'list=' in url or 'start_radio=' in url:
+        return jsonify({'error': 'Плейлисти не се поддържат.'}), 400
 
     job_id = str(uuid.uuid4())
     update_job_status(job_id, 'starting', "Инициализиране...")

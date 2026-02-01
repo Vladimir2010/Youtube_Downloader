@@ -16,52 +16,71 @@
     <div class="container">
         <header>
             <h1>Video<span>Downloader</span></h1>
-            <p>Бързо и лесно сваляне на видео от YouTube за учебни цели.</p>
+            <p>Бързо и лесно сваляне на видео от YouTube.</p>
         </header>
 
         <main>
+            <!-- Search Section -->
             <div class="input-card">
                 <div class="input-group">
-                    <input type="text" id="url-input" placeholder="Постави YouTube линк тук..." autocomplete="off">
-                    <button id="analyze-btn">Анализирай</button>
+                    <input type="text" id="url-search-input" placeholder="Постави линк или напиши име на видео..."
+                        autocomplete="off">
+                    <button id="search-btn">Търси / Извлечи</button>
                 </div>
                 <div id="error-msg" class="error"></div>
             </div>
 
-            <div id="video-info" class="video-info-card hidden">
-                <div class="thumbnail-container">
-                    <img id="video-thumbnail" src="" alt="Миниизображение">
-                </div>
-                <div class="details">
-                    <h2 id="video-title"></h2>
-                    <div class="options">
-                        <div class="option-group">
-                            <label>Тип на сваляне:</label>
-                            <select id="type-select">
-                                <option value="video">Видео + Аудио (MP4)</option>
-                                <option value="audio">Само Аудио (MP3)</option>
-                            </select>
-                        </div>
-                        <div class="option-group" id="quality-group">
-                            <label>Качество:</label>
-                            <select id="quality-select"></select>
-                        </div>
-                    </div>
-                    <button id="download-btn">Започни изтегляне</button>
-                </div>
-            </div>
+            <!-- Search Results Section -->
+            <div id="search-results" class="results-grid hidden"></div>
 
+            <!-- Enhanced Progress Card (Global) -->
             <div id="progress-container" class="progress-card hidden">
-                <h3>Изтегляне...</h3>
+                <h3>Обработка...</h3>
                 <div class="progress-bar-bg">
                     <div id="progress-bar-fill"></div>
                 </div>
-                <p id="status-text">Изчакване на сървъра...</p>
+                <p id="status-text">Изчакване...</p>
+                <p id="progress-details"
+                    style="text-align: center; font-size: 0.8rem; margin-top: 0.5rem; color: #94a3b8;"></p>
                 <div id="final-link" class="hidden">
                     <a id="download-link" href="#" class="final-btn" target="_blank">Изтегли файла</a>
                 </div>
             </div>
         </main>
+
+        <!-- Modals -->
+        <div id="play-modal" class="modal hidden">
+            <div class="modal-content">
+                <span id="close-play" class="close">&times;</span>
+                <div class="video-container">
+                    <iframe id="youtube-iframe" src="" frameborder="0" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+
+        <div id="download-modal" class="modal hidden">
+            <div class="modal-content download-opts">
+                <span id="close-download" class="close">&times;</span>
+                <div class="modal-preview">
+                    <img id="modal-thumbnail" src="" alt="" class="hidden">
+                    <h2 id="modal-video-title">Настройки за сваляне</h2>
+                </div>
+                <div class="options">
+                    <div class="option-group">
+                        <label>Тип:</label>
+                        <select id="modal-type-select">
+                            <option value="video">Видео + Аудио (MP4)</option>
+                            <option value="audio">Само Аудио (MP3)</option>
+                        </select>
+                    </div>
+                    <div class="option-group" id="modal-quality-group">
+                        <label>Качество:</label>
+                        <select id="modal-quality-select"></select>
+                    </div>
+                </div>
+                <button id="modal-start-download-btn">Започни изтеглянето</button>
+            </div>
+        </div>
 
         <footer>
             <p>&copy; 2026 VladPos YouTube Downloader</p>
