@@ -13,3 +13,8 @@ build/
 *.exe
 *.spec
 YoutubeDownloader.spec
+/.venv/
+/android/
+/.vscode/
+/downloads/
+/VladPos_YT_Downloader/downloads/
