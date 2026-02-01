@@ -69,14 +69,14 @@ def download_task(job_id, url, format_opts):
             'ffmpeg_location': ffmpeg_path,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'ios'],
+                    'player_client': ['web', 'mweb_embedded'],
                 }
             },
             'nocheckcertificate': True,
             'quiet': False,
             'no_warnings': False,
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             },
             'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
             'merge_output_format': 'mp4',
@@ -111,12 +111,11 @@ def search_videos():
             'extract_flat': True,
             'quiet': True,
             'no_warnings': True,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['android', 'ios'],
-                }
-            },
             'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            }
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # ytsearch5: will return the first 5 results
@@ -157,12 +156,15 @@ def get_formats():
 
     try:
         ydl_opts = {
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['android', 'ios'],
-                }
-            },
+            'quiet': True,
+            'no_warnings': True,
+            'nocheckcertificate': True,
             'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+            }
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
