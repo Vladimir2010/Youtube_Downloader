@@ -22,6 +22,8 @@ body {
     color: var(--text);
     min-height: 100vh;
     padding: 20px;
+    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
 }
 
 .container {

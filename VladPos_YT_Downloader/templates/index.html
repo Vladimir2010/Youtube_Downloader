@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bg">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Downloader - Premium Tool</title>
+    <title>YouTube Downloader - Професионален Инструмент</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='app_icon.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
@@ -15,49 +16,49 @@
     <div class="container">
         <header>
             <h1>Video<span>Downloader</span></h1>
-            <p>Fast and easy YouTube video downloader for educational use.</p>
+            <p>Бързо и лесно сваляне на видео от YouTube за учебни цели.</p>
         </header>
 
         <main>
             <div class="input-card">
                 <div class="input-group">
-                    <input type="text" id="url-input" placeholder="Paste YouTube link here..." autocomplete="off">
-                    <button id="analyze-btn">Analyze</button>
+                    <input type="text" id="url-input" placeholder="Постави YouTube линк тук..." autocomplete="off">
+                    <button id="analyze-btn">Анализирай</button>
                 </div>
                 <div id="error-msg" class="error"></div>
             </div>
 
             <div id="video-info" class="video-info-card hidden">
                 <div class="thumbnail-container">
-                    <img id="video-thumbnail" src="" alt="Thumbnail">
+                    <img id="video-thumbnail" src="" alt="Миниизображение">
                 </div>
                 <div class="details">
                     <h2 id="video-title"></h2>
                     <div class="options">
                         <div class="option-group">
-                            <label>Download Type:</label>
+                            <label>Тип на сваляне:</label>
                             <select id="type-select">
-                                <option value="video">Video + Audio (MP4)</option>
-                                <option value="audio">Audio Only (MP3)</option>
+                                <option value="video">Видео + Аудио (MP4)</option>
+                                <option value="audio">Само Аудио (MP3)</option>
                             </select>
                         </div>
                         <div class="option-group" id="quality-group">
-                            <label>Quality:</label>
+                            <label>Качество:</label>
                             <select id="quality-select"></select>
                         </div>
                     </div>
-                    <button id="download-btn">Start Download</button>
+                    <button id="download-btn">Започни изтегляне</button>
                 </div>
             </div>
 
             <div id="progress-container" class="progress-card hidden">
-                <h3>Downloading...</h3>
+                <h3>Изтегляне...</h3>
                 <div class="progress-bar-bg">
                     <div id="progress-bar-fill"></div>
                 </div>
-                <p id="status-text">Waiting for server...</p>
+                <p id="status-text">Изчакване на сървъра...</p>
                 <div id="final-link" class="hidden">
-                    <a id="download-link" href="#" class="final-btn" target="_blank">Download File</a>
+                    <a id="download-link" href="#" class="final-btn" target="_blank">Изтегли файла</a>
                 </div>
             </div>
         </main>

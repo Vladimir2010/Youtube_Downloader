@@ -1,5 +1,5 @@
 // Configuration
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://youtube-downloader-36zi.onrender.com';
 
 // DOM Elements
 const urlInput = document.getElementById('urlInput');
@@ -189,16 +189,34 @@ async function pollDownloadStatus() {
 }
 
 // Download File
-function downloadFile() {
+async function downloadFile() {
     const downloadUrl = `${API_BASE_URL}/file/${currentSessionId}`;
 
-    // Create temporary link and trigger download
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = '';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+        // Check if running on Android/iOS via Capacitor
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            const { Browser } = Capacitor.Plugins;
+            const { Share } = Capacitor.Plugins;
+            
+            showStatus('Отваряне на браузъра за изтегляне...', 'success');
+            
+            // On Android, the best way to handle file downloads from a remote server 
+            // is often to let the system browser handle it, or use Filesystem.
+            // For simplicity and reliability, we'll use the Browser plugin.
+            await Browser.open({ url: downloadUrl });
+        } else {
+            // Web fallback
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    } catch (error) {
+        console.error('Download error:', error);
+        showStatus('Грешка при изтегляне. Опитайте пак.', 'error');
+    }
 
     setTimeout(() => {
         resetDownloadUI();
