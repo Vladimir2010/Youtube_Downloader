@@ -58,10 +58,15 @@ def progress_hook(job_id):
 
 def download_task(job_id, url, format_opts):
     try:
+        ffmpeg_path = os.path.join(os.getcwd(), 'ffmpeg', 'ffmpeg')
+        if not os.path.exists(ffmpeg_path):
+            ffmpeg_path = 'ffmpeg' # Fallback to system path
+
         ydl_opts = {
             'outtmpl': os.path.join(DOWNLOAD_FOLDER, f'{job_id}_%(title)s.%(ext)s'),
             'progress_hooks': [progress_hook(job_id)],
             'format': format_opts.get('format_id', 'best'),
+            'ffmpeg_location': ffmpeg_path,
             'extractor_args': {
                 'youtube': {
                     'player_client': ['android', 'ios'],
