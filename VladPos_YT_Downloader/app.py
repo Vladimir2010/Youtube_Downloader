@@ -79,6 +79,7 @@ def download_task(job_id, url, format_opts):
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             },
             'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
+            'merge_output_format': 'mp4',
             'postprocessors': format_opts.get('postprocessors', [])
         }
 
@@ -168,18 +169,21 @@ def get_formats():
             formats = []
             
             for f in info.get('formats', []):
-                if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
+                # Търсим видео потоци (със или без аудио)
+                if f.get('vcodec') != 'none':
                     res = f.get('height')
                     if res in [360, 480, 720, 1080]:
                         formats.append({
                             'id': f.get('format_id'),
                             'ext': f.get('ext'),
                             'quality': f'{res}p',
-                            'note': f.get('format_note'),
-                            'filesize': f.get('filesize_approx') or f.get('filesize')
+                            'note': f.get('format_note', ''),
+                            'filesize': f.get('filesize_approx') or f.get('filesize'),
+                            'has_audio': f.get('acodec') != 'none'
                         })
             
-            formats.sort(key=lambda x: int(x['quality'].replace('p', '')), reverse=True)
+            # Сортираме и махаме дубликатите, като запазваме най-добрия формат за всяка резолюция
+            formats.sort(key=lambda x: (int(x['quality'].replace('p', '')), x['has_audio']), reverse=True)
             seen_quality = set()
             unique_formats = []
             for f in formats:
@@ -223,6 +227,7 @@ def start_download():
             }]
         }
     else:
+        # Използваме избранoто видео + най-доброто аудио и ги сливаме
         format_opts = {
             'format_id': f'{format_id}+bestaudio/best' if format_id else 'bestvideo+bestaudio/best'
         }
