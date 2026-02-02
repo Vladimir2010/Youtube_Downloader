@@ -69,7 +69,7 @@ def download_task(job_id, url, format_opts):
             'ffmpeg_location': ffmpeg_path,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['tv', 'web', 'mweb'],
+                    'player_client': ['tv', 'mweb', 'ios', 'oauth2'],
                     'formats': 'missing_pot',
                 }
             },
@@ -78,9 +78,7 @@ def download_task(job_id, url, format_opts):
             'nocheckcertificate': True,
             'quiet': False,
             'no_warnings': False,
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            },
+            'http_headers': {},
             'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
             'merge_output_format': 'mp4',
             'fragment_retries': 15,
@@ -121,7 +119,7 @@ def search_videos():
             'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['tv', 'mweb'],
+                    'player_client': ['tv', 'mweb', 'ios', 'oauth2'],
                     'formats': 'missing_pot',
                 }
             }
