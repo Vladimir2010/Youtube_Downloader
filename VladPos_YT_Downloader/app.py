@@ -69,9 +69,12 @@ def download_task(job_id, url, format_opts):
             'ffmpeg_location': ffmpeg_path,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['web', 'mweb_embedded'],
+                    'player_client': ['tv', 'web', 'mweb'],
+                    'formats': 'missing_pot',
                 }
             },
+            'youtube_include_dash_manifest': False,
+            'youtube_include_hls_manifest': False,
             'nocheckcertificate': True,
             'quiet': False,
             'no_warnings': False,
@@ -80,6 +83,10 @@ def download_task(job_id, url, format_opts):
             },
             'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
             'merge_output_format': 'mp4',
+            'fragment_retries': 15,
+            'retry_sleep_functions': {'fragment': lambda n: 10},
+            'file_access_retries': 5,
+            'concurrent_fragment_downloads': 1,
             'postprocessors': format_opts.get('postprocessors', [])
         }
 
@@ -112,9 +119,11 @@ def search_videos():
             'quiet': True,
             'no_warnings': True,
             'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['tv', 'mweb'],
+                    'formats': 'missing_pot',
+                }
             }
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -160,11 +169,14 @@ def get_formats():
             'no_warnings': True,
             'nocheckcertificate': True,
             'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-            }
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['tv', 'web', 'mweb'],
+                    'formats': 'missing_pot',
+                }
+            },
+            'youtube_include_dash_manifest': False,
+            'youtube_include_hls_manifest': False,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
