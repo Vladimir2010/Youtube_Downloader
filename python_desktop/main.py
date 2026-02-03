@@ -10,6 +10,22 @@ from downloader import YoutubeDownloader
 import requests
 from PySide6.QtGui import QPixmap, QImage, QIcon
 
+class FFmpegDownloadThread(QThread):
+    progress = Signal(float)
+    finished = Signal()
+    error = Signal(str)
+
+    def __init__(self, downloader):
+        super().__init__()
+        self.downloader = downloader
+
+    def run(self):
+        try:
+            self.downloader.download_ffmpeg(progress_callback=self.progress.emit)
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))
+
 class DownloadThread(QThread):
     progress = Signal(float)
     finished = Signal(str)
@@ -29,8 +45,8 @@ class DownloadThread(QThread):
 
     def run(self):
         try:
-            self.downloader.download(self.url, self.save_path, self.resolution, self.mode)
-            self.finished.emit("Изтеглянето завърши успешно!")
+            filename = self.downloader.download(self.url, self.save_path, self.resolution, self.mode)
+            self.finished.emit(filename)
         except Exception as e:
             self.error.emit(str(e))
 
@@ -53,6 +69,46 @@ class MainWindow(QMainWindow):
         self.current_bitrates = []
         
         self.init_ui()
+        # Показване на прозореца първо и след това проверка за FFmpeg
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, self.check_ffmpeg)
+
+    def check_ffmpeg(self):
+        if not self.downloader.is_ffmpeg_available():
+            reply = QMessageBox.question(self, "Липсва FFmpeg", 
+                                       "За да работи програмата, е необходимо да се изтегли FFmpeg (допълнителен модул). \n\nЖелаете ли да го изтеглите сега?",
+                                       QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.start_ffmpeg_download()
+            else:
+                QMessageBox.warning(self, "Внимание", "Без FFmpeg някои функции (като аудио конвертиране) няма да работят.")
+
+    def start_ffmpeg_download(self):
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
+        self.status_label.setText("Сваляне на FFmpeg... Моля изчакайте.")
+        self.download_btn.setEnabled(False)
+        self.fetch_btn.setEnabled(False)
+
+        self.ffmpeg_thread = FFmpegDownloadThread(self.downloader)
+        self.ffmpeg_thread.progress.connect(self.progress_bar.setValue)
+        self.ffmpeg_thread.finished.connect(self.on_ffmpeg_finished)
+        self.ffmpeg_thread.error.connect(self.on_ffmpeg_error)
+        self.ffmpeg_thread.start()
+
+    def on_ffmpeg_finished(self):
+        self.download_btn.setEnabled(True)
+        self.fetch_btn.setEnabled(True)
+        self.progress_bar.setVisible(False)
+        self.status_label.setText("FFmpeg е инсталиран успешно!")
+        QMessageBox.information(self, "Успех", "FFmpeg беше изтеглен и инсталиран успешно.")
+
+    def on_ffmpeg_error(self, err):
+        self.download_btn.setEnabled(True)
+        self.fetch_btn.setEnabled(True)
+        self.progress_bar.setVisible(False)
+        self.status_label.setText("Грешка при сваляне")
+        QMessageBox.critical(self, "Грешка", f"Неуспешно сваляне на FFmpeg: {err}")
 
     def init_ui(self):
         central_widget = QWidget()
@@ -223,11 +279,17 @@ class MainWindow(QMainWindow):
         self.thread.error.connect(self.on_error)
         self.thread.start()
 
-    def on_finished(self, msg):
+    def on_finished(self, filename):
         self.download_btn.setEnabled(True)
         self.status_label.setText("Завършено!")
-        QMessageBox.information(self, "Успех", msg)
+        
+        QMessageBox.information(self, "Успех", "Изтеглянето завърши успешно!")
         self.progress_bar.setVisible(False)
+        
+        # Open folder and select file
+        if os.path.exists(filename):
+            import subprocess
+            subprocess.run(['explorer', '/select,', os.path.normpath(filename)])
 
     def on_error(self, err):
         self.download_btn.setEnabled(True)

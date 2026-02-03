@@ -3,7 +3,7 @@ services:
     name: vladpos-yt-downloader
     env: python
     buildCommand: "./render_build.sh"
-    startCommand: "gunicorn app:app"
+    startCommand: "gunicorn -w 4 -b 0.0.0.0:$PORT app:app"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0

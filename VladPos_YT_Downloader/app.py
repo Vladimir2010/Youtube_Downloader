@@ -58,7 +58,15 @@ def progress_hook(job_id):
 
 def download_task(job_id, url, format_opts):
     try:
+        # Detect ffmpeg (common Render path vs local)
         ffmpeg_path = os.path.join(os.getcwd(), 'ffmpeg', 'ffmpeg')
+        
+        # Check if we are in dev environment and ffmpeg is in sibling python_desktop/bin
+        if not os.path.exists(ffmpeg_path):
+            potential_path = os.path.abspath(os.path.join(os.getcwd(), '..', 'python_desktop', 'bin', 'ffmpeg.exe'))
+            if os.path.exists(potential_path):
+                ffmpeg_path = potential_path
+        
         if not os.path.exists(ffmpeg_path):
             ffmpeg_path = 'ffmpeg' # Fallback to system path
 
@@ -66,25 +74,20 @@ def download_task(job_id, url, format_opts):
             'outtmpl': os.path.join(DOWNLOAD_FOLDER, f'{job_id}_%(title)s.%(ext)s'),
             'progress_hooks': [progress_hook(job_id)],
             'format': format_opts.get('format_id', 'best'),
-            'ffmpeg_location': ffmpeg_path,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['tv', 'mweb', 'ios', 'oauth2'],
-                    'formats': 'missing_pot',
+                    'player_client': ['android_vr', 'ios'],
+                    'formats': ['missing_pot'],
                 }
             },
-            'youtube_include_dash_manifest': False,
-            'youtube_include_hls_manifest': False,
             'nocheckcertificate': True,
             'quiet': False,
             'no_warnings': False,
-            'http_headers': {},
-            'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            },
+            'ffmpeg_location': ffmpeg_path,
             'merge_output_format': 'mp4',
-            'fragment_retries': 15,
-            'retry_sleep_functions': {'fragment': lambda n: 10},
-            'file_access_retries': 5,
-            'concurrent_fragment_downloads': 1,
             'postprocessors': format_opts.get('postprocessors', [])
         }
 
@@ -116,16 +119,17 @@ def search_videos():
             'extract_flat': True,
             'quiet': True,
             'no_warnings': True,
-            'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['tv', 'mweb', 'ios', 'oauth2'],
-                    'formats': 'missing_pot',
+                    'player_client': ['android_vr', 'ios'],
+                    'formats': ['missing_pot'],
                 }
+            },
+            'http_headers': {
+                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             }
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # ytsearch5: will return the first 5 results
             search_result = ydl.extract_info(f"ytsearch5:{query}", download=False)
             results = []
             
@@ -139,7 +143,6 @@ def search_videos():
                         'duration': entry.get('duration_string'),
                         'url': f"https://www.youtube.com/watch?v={entry.get('id')}"
                     })
-            
             return jsonify(results)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -151,11 +154,6 @@ def get_formats():
     if not url_or_id:
         return jsonify({'error': 'Моля въведете URL или ID'}), 400
 
-    # Playlist validation
-    if 'list=' in url_or_id or 'start_radio=' in url_or_id:
-        return jsonify({'error': 'Плейлисти не се поддържат. Моля, въведете линк към отделно видео.'}), 400
-
-    # If it's just an ID, reconstruct the URL
     if not url_or_id.startswith('http'):
         url = f"https://www.youtube.com/watch?v={url_or_id}"
     else:
@@ -166,22 +164,21 @@ def get_formats():
             'quiet': True,
             'no_warnings': True,
             'nocheckcertificate': True,
-            'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['tv', 'web', 'mweb'],
-                    'formats': 'missing_pot',
+                    'player_client': ['android_vr', 'ios'],
+                    'formats': ['missing_pot'],
                 }
             },
-            'youtube_include_dash_manifest': False,
-            'youtube_include_hls_manifest': False,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            }
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             formats = []
             
             for f in info.get('formats', []):
-                # Търсим видео потоци (със или без аудио)
                 if f.get('vcodec') != 'none':
                     res = f.get('height')
                     if res in [360, 480, 720, 1080]:
@@ -194,7 +191,6 @@ def get_formats():
                             'has_audio': f.get('acodec') != 'none'
                         })
             
-            # Сортираме и махаме дубликатите, като запазваме най-добрия формат за всяка резолюция
             formats.sort(key=lambda x: (int(x['quality'].replace('p', '')), x['has_audio']), reverse=True)
             seen_quality = set()
             unique_formats = []
@@ -221,9 +217,6 @@ def start_download():
     if not url:
         return jsonify({'error': 'URL е задължителен'}), 400
 
-    if 'list=' in url or 'start_radio=' in url:
-        return jsonify({'error': 'Плейлисти не се поддържат.'}), 400
-
     job_id = str(uuid.uuid4())
     update_job_status(job_id, 'starting', "Инициализиране...")
 
@@ -239,7 +232,6 @@ def start_download():
             }]
         }
     else:
-        # Използваме избранoто видео + най-доброто аудио и ги сливаме
         format_opts = {
             'format_id': f'{format_id}+bestaudio/best' if format_id else 'bestvideo+bestaudio/best'
         }
@@ -261,7 +253,6 @@ def download_file(job_id):
     job = jobs.get(job_id)
     if not job or job['status'] != 'completed':
         return jsonify({'error': 'Файлът не е готов'}), 404
-    
     return send_from_directory(DOWNLOAD_FOLDER, job['filename'], as_attachment=True)
 
 def cleanup():

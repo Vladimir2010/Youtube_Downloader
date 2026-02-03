@@ -11,12 +11,14 @@ class YoutubeDownloader:
         """Locates ffmpeg.exe in several potential locations."""
         locations = []
         
-        # 1. If running as a bundled executable
+        # 1. User Application Data (for downloaded ffmpeg)
+        app_data_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'YoutubeDownloaderPro')
+        locations.append(os.path.join(app_data_dir, 'ffmpeg.exe'))
+
+        # 2. If running as a bundled executable
         if getattr(sys, 'frozen', False):
             base_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
-            # PyInstaller 6.x puts things in _internal in one-dir mode
             internal_dir = os.path.join(base_dir, '_internal')
-            
             locations.extend([
                 os.path.join(base_dir, 'bin', 'ffmpeg.exe'),
                 os.path.join(internal_dir, 'bin', 'ffmpeg.exe'),
@@ -24,7 +26,7 @@ class YoutubeDownloader:
                 os.path.join(internal_dir, 'ffmpeg.exe'),
             ])
         
-        # 2. Development paths
+        # 3. Development paths
         script_dir = os.path.dirname(os.path.abspath(__file__))
         locations.extend([
             os.path.join(script_dir, 'bin', 'ffmpeg.exe'),
@@ -36,8 +38,65 @@ class YoutubeDownloader:
             if os.path.exists(loc):
                 return loc
             
-        # 3. Fallback to PATH
+        # 4. Fallback to PATH
         return 'ffmpeg'
+
+    def is_ffmpeg_available(self):
+        """Checks if ffmpeg is available on the system."""
+        path = self._find_ffmpeg()
+        if path == 'ffmpeg':
+            import subprocess
+            try:
+                subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
+                return True
+            except:
+                return False
+        return os.path.exists(path)
+
+    def download_ffmpeg(self, progress_callback=None):
+        """Downloads ffmpeg.exe for Windows."""
+        import requests
+        import zipfile
+        import io
+        
+        # Static build URL for Windows (gyan.dev)
+        url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+        app_data_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'YoutubeDownloaderPro')
+        os.makedirs(app_data_dir, exist_ok=True)
+        ffmpeg_dest = os.path.join(app_data_dir, 'ffmpeg.exe')
+
+        if os.path.exists(ffmpeg_dest):
+            return True
+
+        try:
+            response = requests.get(url, stream=True)
+            total_size = int(response.headers.get('content-length', 0))
+            
+            bytes_downloaded = 0
+            zip_buffer = io.BytesIO()
+
+            for chunk in response.iter_content(chunk_size=1024*1024):
+                if chunk:
+                    zip_buffer.write(chunk)
+                    bytes_downloaded += len(chunk)
+                    if progress_callback and total_size > 0:
+                        progress_callback(bytes_downloaded / total_size * 100)
+
+            with zipfile.ZipFile(zip_buffer) as z:
+                # Find ffmpeg.exe in the zip
+                for file_info in z.infolist():
+                    if file_info.filename.endswith('ffmpeg.exe'):
+                        # Extract only ffmpeg.exe
+                        with z.open(file_info) as source, open(ffmpeg_dest, 'wb') as target:
+                            import shutil
+                            shutil.copyfileobj(source, target)
+                        break
+            
+            # Update path
+            self.ffmpeg_path = ffmpeg_dest
+            return True
+        except Exception as e:
+            raise Exception(f"Грешка при сваляне на FFmpeg: {str(e)}")
 
     def _progress_hook(self, d):
         if d['status'] == 'downloading':
@@ -56,7 +115,8 @@ class YoutubeDownloader:
             'ffmpeg_location': self.ffmpeg_path,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'ios'],
+                    'player_client': ['android_vr', 'ios'],
+                    'formats': ['missing_pot'],
                 }
             }
         }
@@ -98,9 +158,10 @@ class YoutubeDownloader:
             },
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'ios'],
+                    'player_client': ['android_vr', 'ios'],
+                    'formats': ['missing_pot']
                 }
-            }
+            },
         }
         
         # ... (rest of mode logic stays same)
@@ -142,3 +203,5 @@ class YoutubeDownloader:
                 pass
             elif os.path.getsize(filename) == 0:
                 raise Exception("Сваленият файл е празен. Вероятно проблем с YouTube или интернет връзката.")
+            
+            return filename
